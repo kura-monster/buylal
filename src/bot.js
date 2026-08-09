@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, REST, Routes, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, ApplicationCommandOptionType } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, ApplicationCommandOptionType, Events } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -34,7 +34,7 @@ function setupBot() {
     ]
   });
 
-  client.once('ready', async () => {
+  client.once(Events.ClientReady, async () => {
     console.log(`[Bot] Logged in as ${client.user.tag}`);
     await registerCommands(client);
   });
@@ -200,23 +200,35 @@ async function registerCommands(client) {
 
   try {
     console.log('[Bot] Registering slash commands...');
-    
     const guildId = process.env.GUILD_ID;
+    
     if (guildId) {
-      await rest.put(
-        Routes.applicationGuildCommands(client.user.id, guildId),
-        { body: commands }
-      );
-      console.log(`[Bot] Guild application commands registered successfully for Guild: ${guildId}`);
-    } else {
-      await rest.put(
-        Routes.applicationCommands(client.user.id),
-        { body: commands }
-      );
-      console.log('[Bot] Global application commands registered successfully');
+      try {
+        await rest.put(
+          Routes.applicationGuildCommands(client.user.id, guildId),
+          { body: commands }
+        );
+        console.log(`[Bot] Guild application commands registered successfully for Guild: ${guildId}`);
+        return;
+      } catch (guildError) {
+        console.warn(`[Bot] Failed to register guild commands for ${guildId}: ${guildError.message}`);
+        console.warn('[Bot] Falling back to global command registration...');
+      }
     }
+
+    await rest.put(
+      Routes.applicationCommands(client.user.id),
+      { body: commands }
+    );
+    console.log('[Bot] Global application commands registered successfully. (Note: Global commands can take up to 1 hour to appear across all servers)');
+
   } catch (error) {
     console.error('[Bot] Failed to register commands:', error);
+    if (error.code === 50001) {
+      console.error('[Bot] [ERROR: Missing Access] Botに "applications.commands" スコープが不足しているか、サーバーへの参加状況が正しくありません。');
+      console.log('[Bot] 以下のリンクを使用してBotをサーバーに招待し直してください:');
+      console.log(`[Bot] https://discord.com/oauth2/authorize?client_id=${client.user.id}&permissions=268520448&scope=bot%20applications.commands`);
+    }
   }
 }
 
