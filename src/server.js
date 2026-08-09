@@ -9,9 +9,20 @@ const admissionTracker = {
   resetTime: Date.now() + 60000
 };
 
+const pendingVerifications = new Map();
+
 setInterval(() => {
   admissionTracker.successesInLastMinute = 0;
   admissionTracker.resetTime = Date.now() + 60000;
+}, 60000);
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, data] of pendingVerifications.entries()) {
+    if (now - data.createdAt > 300000) {
+      pendingVerifications.delete(token);
+    }
+  }
 }, 60000);
 
 function checkGlobalAdmissionLimit() {
@@ -81,6 +92,39 @@ async function isVpnOrProxy(ip) {
   return { isSuspicious: false };
 }
 
+function getBannedGuilds() {
+  const bannedGuildsFilePath = path.join(__dirname, '..', 'banned_guilds.json');
+  try {
+    if (!fs.existsSync(bannedGuildsFilePath)) {
+      return [];
+    }
+    const data = fs.readFileSync(bannedGuildsFilePath, 'utf8');
+    return JSON.parse(data || '[]');
+  } catch (error) {
+    console.error('Error reading banned guilds in server:', error);
+    return [];
+  }
+}
+
+function generateMathQuestion() {
+  const isMultiplication = Math.random() > 0.5;
+  if (isMultiplication) {
+    const a = Math.floor(Math.random() * 8) + 2;
+    const b = Math.floor(Math.random() * 8) + 2;
+    return {
+      question: `${a} * ${b}`,
+      answer: a * b
+    };
+  } else {
+    const a = Math.floor(Math.random() * 28) + 3;
+    const b = Math.floor(Math.random() * 28) + 3;
+    return {
+      question: `${a} + ${b}`,
+      answer: a + b
+    };
+  }
+}
+
 function renderTemplate(filePath, replacements) {
   let content = fs.readFileSync(filePath, 'utf8');
   for (const [key, value] of Object.entries(replacements)) {
@@ -92,6 +136,8 @@ function renderTemplate(filePath, replacements) {
 function startWebServer(botClient) {
   const app = express();
   const PORT = process.env.PORT || 3000;
+
+  app.use(express.urlencoded({ extended: true }));
 
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -112,10 +158,12 @@ function startWebServer(botClient) {
   });
 
   app.use('/api/auth/callback', apiLimiter);
+  app.use('/api/auth/verify-captcha', apiLimiter);
 
   app.get('/api/auth/callback', async (req, res) => {
     const code = req.query.code;
     const verifyHtmlPath = path.join(__dirname, 'views', 'verify.html');
+    const captchaHtmlPath = path.join(__dirname, 'views', 'captcha.html');
 
     const renderData = {
       isSuccess: 'false',
@@ -164,7 +212,7 @@ function startWebServer(botClient) {
             code: code,
             grant_type: 'authorization_code',
             redirect_uri: process.env.REDIRECT_URI,
-            scope: 'identify'
+            scope: 'identify guilds'
           }),
           {
             headers: {
@@ -193,8 +241,101 @@ function startWebServer(botClient) {
         ? `https://cdn.discordapp.com/avatars/${userId}/${discordUser.avatar}.png`
         : `https://cdn.discordapp.com/embed/avatars/${parseInt(userId) % 5}.png`;
 
-      renderData.username = username;
-      renderData.avatarUrl = avatarUrl;
+      const math = generateMathQuestion();
+      const verificationToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+      pendingVerifications.set(verificationToken, {
+        ip: clientIp,
+        userId: userId,
+        username: username,
+        avatarUrl: avatarUrl,
+        accessToken: accessToken,
+        correctAnswer: math.answer,
+        createdAt: Date.now()
+      });
+
+      const html = renderTemplate(captchaHtmlPath, {
+        mathQuestion: math.question,
+        token: verificationToken
+      });
+      res.send(html);
+
+    } catch (error) {
+      console.error('[Auth Error]', error.response?.data || error.message);
+      renderData.isSuccess = 'false';
+      if (!renderData.failStep) {
+        renderData.failStep = 'account';
+      }
+      renderData.errorMessage = error.message || '認証の処理中にシステムエラーが発生しました。';
+      
+      const html = renderTemplate(verifyHtmlPath, renderData);
+      res.status(500).send(html);
+    }
+  });
+
+  app.post('/api/auth/verify-captcha', async (req, res) => {
+    const { token, answer } = req.body;
+    const verifyHtmlPath = path.join(__dirname, 'views', 'verify.html');
+    const clientIp = getClientIp(req);
+
+    const renderData = {
+      isSuccess: 'false',
+      failStep: 'rate',
+      errorMessage: '検証エラー: セッションが無効か、有効期限が切れています。最初からやり直してください。',
+      username: 'Anonymous',
+      avatarUrl: 'https://cdn.discordapp.com/embed/avatars/0.png'
+    };
+
+    if (!token || !pendingVerifications.has(token)) {
+      const html = renderTemplate(verifyHtmlPath, renderData);
+      return res.status(400).send(html);
+    }
+
+    const session = pendingVerifications.get(token);
+    pendingVerifications.delete(token);
+
+    if (session.ip !== clientIp) {
+      const html = renderTemplate(verifyHtmlPath, renderData);
+      return res.status(400).send(html);
+    }
+
+    if (Date.now() - session.createdAt > 300000) {
+      const html = renderTemplate(verifyHtmlPath, renderData);
+      return res.status(400).send(html);
+    }
+
+    renderData.username = session.username;
+    renderData.avatarUrl = session.avatarUrl;
+
+    if (parseInt(answer, 10) !== session.correctAnswer) {
+      renderData.failStep = 'rate';
+      renderData.errorMessage = 'アクセス制限: 計算の答えが一致しません。自動化ロボットとみなされました。認証をやり直してください。';
+      const html = renderTemplate(verifyHtmlPath, renderData);
+      return res.status(400).send(html);
+    }
+
+    try {
+      let guildsResponse;
+      try {
+        guildsResponse = await axios.get('https://discord.com/api/users/@me/guilds', {
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`
+          },
+          timeout: 5000
+        });
+      } catch (guildsErr) {
+        throw new Error('所属ギルド情報の取得に失敗しました。Discord APIの連携許可範囲を確認してください。');
+      }
+
+      const userGuilds = guildsResponse.data;
+      const bannedGuildIds = getBannedGuilds();
+      const matchedBannedGuild = userGuilds.find(g => bannedGuildIds.includes(g.id));
+
+      if (matchedBannedGuild) {
+        console.log(`[Auth Blocked] User is in a banned guild: ${matchedBannedGuild.name} (${matchedBannedGuild.id})`);
+        renderData.failStep = 'account';
+        throw new Error(`アクセス制限: あなたが所属しているサーバー "${matchedBannedGuild.name} (ID: ${matchedBannedGuild.id})" は、当サーバーのセキュリティポリシーにより拒否対象に指定されています。該当サーバーから脱退した状態で再度認証を行ってください。`);
+      }
 
       const guildId = process.env.GUILD_ID;
       const roleId = process.env.ROLE_ID || '1439385926685167847';
@@ -204,7 +345,7 @@ function startWebServer(botClient) {
         throw new Error('指定されたDiscordサーバー情報を取得できませんでした。Botが正しく導入されているか確認してください。');
       });
 
-      const member = await guild.members.fetch(userId).catch(err => {
+      const member = await guild.members.fetch(session.userId).catch(err => {
         renderData.failStep = 'account';
         throw new Error('サーバー内にあなたのアカウントが見つかりませんでした。先にサーバーに参加した状態で認証を行ってください。');
       });
@@ -225,10 +366,10 @@ function startWebServer(botClient) {
       const html = renderTemplate(verifyHtmlPath, renderData);
       res.send(html);
 
-      console.log(`[Auth Success] User: ${username} (${userId}), IP: ${clientIp}`);
+      console.log(`[Auth Success] User: ${session.username} (${session.userId}), IP: ${clientIp}`);
 
     } catch (error) {
-      console.error('[Auth Error]', error.response?.data || error.message);
+      console.error('[Auth Error]', error.message);
       renderData.isSuccess = 'false';
       if (!renderData.failStep) {
         renderData.failStep = 'account';

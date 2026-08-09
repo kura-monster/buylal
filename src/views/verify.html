@@ -3,20 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Security Verification</title>
+  <title>Verification</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&family=Geist:wght@300;400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@200;300;400&family=Geist:wght@200;300;400;500&display=swap');
 
     :root {
-      --bg: #09090b;
-      --card-bg: #121215;
-      --border: #27272a;
-      --text: #ecedee;
-      --text-muted: #71717a;
-      --accent: #4f46e5;
+      --bg: #030303;
+      --text: #e4e4e7;
+      --text-muted: #52525b;
       --success: #10b981;
       --error: #ef4444;
-      --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-sans: 'Geist', sans-serif;
       --font-mono: 'Geist Mono', monospace;
     }
 
@@ -34,64 +31,23 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 20px;
+      padding: 40px;
       -webkit-font-smoothing: antialiased;
-      overflow: hidden;
     }
 
-    .wrapper {
+    .container {
       width: 100%;
-      max-width: 480px;
-      position: relative;
-    }
-
-    .grid-bg {
-      position: absolute;
-      inset: -100px;
-      background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-      background-size: 24px 24px;
-      mask-image: radial-gradient(ellipse at center, black, transparent 70%);
-      -webkit-mask-image: radial-gradient(ellipse at center, black, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .card {
-      position: relative;
-      z-index: 1;
-      background-color: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 36px;
-      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
-      min-height: 380px;
+      max-width: 360px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .card.state-loading::before { background: var(--accent); box-shadow: 0 0 12px var(--accent); }
-    .card.state-success::before { background: var(--success); box-shadow: 0 0 12px var(--success); }
-    .card.state-error::before { background: var(--error); box-shadow: 0 0 12px var(--error); }
-    
-    .card::before {
-      content: '';
-      position: absolute;
-      left: -1px;
-      top: 24px;
-      bottom: 24px;
-      width: 3px;
-      border-radius: 0 4px 4px 0;
-      transition: all 0.5s ease;
+      gap: 40px;
     }
 
     .screen {
       display: none;
       flex-direction: column;
-      gap: 28px;
-      animation: fadeIn 0.4s ease forwards;
+      gap: 24px;
+      animation: fadeIn 0.3s ease forwards;
     }
 
     .screen.active {
@@ -99,408 +55,240 @@
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
+      from { opacity: 0; transform: translateY(4px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .scanner-container {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-
-    .scanner-line-wrapper {
-      height: 2px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 2px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .scanner-line {
-      position: absolute;
-      height: 100%;
-      width: 35%;
-      background: linear-gradient(90deg, transparent, var(--accent), transparent);
-      animation: scan 1.5s infinite linear;
-    }
-
-    @keyframes scan {
-      0% { left: -35%; }
-      100% { left: 100%; }
-    }
-
-    .checks-list {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .check-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 13px;
-      font-family: var(--font-sans);
-      opacity: 0.4;
-      transition: opacity 0.3s ease;
-    }
-
-    .check-item.active {
-      opacity: 1;
-    }
-
-    .check-label {
-      color: var(--text);
-    }
-
-    .check-status {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.05em;
-    }
-
-    .status-checking { color: var(--accent); }
-    .status-pass { color: var(--success); }
-    .status-fail { color: var(--error); }
-
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 4px 10px;
-      border-radius: 4px;
-      width: fit-content;
-    }
-
-    .status-badge.success {
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.2);
-      color: var(--success);
-    }
-
-    .status-badge.error {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      color: var(--error);
-    }
-
-    .status-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
-    .status-badge.success .status-dot {
-      background-color: var(--success);
-      box-shadow: 0 0 8px var(--success);
-    }
-    .status-badge.error .status-dot {
-      background-color: var(--error);
-      box-shadow: 0 0 8px var(--error);
-    }
-
-    header {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    h1 {
-      font-size: 20px;
-      font-weight: 500;
-      letter-spacing: -0.02em;
-      color: #ffffff;
-    }
-
-    .desc {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.5;
-    }
-
-    .meta-box {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: rgba(0, 0, 0, 0.2);
-      padding: 16px;
+    .spinner-wrapper {
       display: flex;
       align-items: center;
       gap: 16px;
     }
 
-    .avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background-color: #1c1c1f;
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-left-color: #ffffff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
 
-    .user-info {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 0;
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
 
-    .user-name {
-      font-size: 14px;
-      font-weight: 500;
+    .loading-text {
+      font-family: var(--font-mono);
+      font-size: 12px;
       color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
-    .connection-status {
+    .loading-step-details {
       font-family: var(--font-mono);
       font-size: 11px;
       color: var(--text-muted);
+      margin-top: 8px;
     }
 
-    .connection-status span {
-      color: var(--success);
+    .status-lbl {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
     }
 
-    .error-box {
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      border-radius: 8px;
-      background: rgba(239, 68, 68, 0.02);
-      padding: 20px;
+    .status-lbl.success { color: var(--success); }
+    .status-lbl.error { color: var(--error); }
+
+    h1 {
+      font-size: 15px;
+      font-weight: 400;
+      color: #ffffff;
+      line-height: 1.5;
+    }
+
+    .log-box {
+      border: 1px solid #18181b;
+      background: #09090b;
+      padding: 16px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
 
-    .error-title {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--error);
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      font-weight: 500;
+    .log-row {
+      display: flex;
+      justify-content: space-between;
     }
 
-    .error-msg {
-      font-size: 13px;
-      color: #fca5a5;
+    .log-key {
+      color: var(--text-muted);
+    }
+
+    .log-val {
+      color: var(--text);
+    }
+
+    .log-val.success-highlight {
+      color: var(--success);
+    }
+
+    .error-detail-box {
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      background: rgba(239, 68, 68, 0.02);
+      padding: 16px;
+      border-radius: 6px;
+      font-family: var(--font-sans);
+      font-size: 12px;
       line-height: 1.5;
+      color: #fca5a5;
     }
 
     .btn-retry {
       display: inline-flex;
-      justify-content: center;
-      align-items: center;
-      background: #ffffff;
-      color: #000000;
-      border: none;
-      font-size: 13px;
-      font-weight: 500;
-      padding: 10px 20px;
-      border-radius: 6px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: #ffffff;
+      background: transparent;
+      border: 1px solid #27272a;
+      padding: 8px 16px;
+      border-radius: 4px;
       text-decoration: none;
       cursor: pointer;
       width: fit-content;
+      transition: border-color 0.2s;
+    }
+
+    .btn-retry:hover {
+      border-color: #ffffff;
     }
 
     .sponsorship {
-      border-top: 1px solid var(--border);
-      padding-top: 20px;
+      border-top: 1px solid #18181b;
+      padding-top: 24px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
       margin-top: auto;
     }
 
     .sponsor-title {
       font-family: var(--font-mono);
-      font-size: 10px;
+      font-size: 9px;
       letter-spacing: 0.1em;
       color: var(--text-muted);
       text-transform: uppercase;
     }
 
     .sponsor-desc {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-muted);
-      line-height: 1.4;
+      line-height: 1.5;
     }
 
-    .sponsor-desc strong {
+    .sponsor-desc span {
       color: var(--text);
-      font-weight: 500;
     }
   </style>
 </head>
 <body>
-  <div class="wrapper">
-    <div class="grid-bg"></div>
-    <div class="card state-loading" id="main-card">
+  <div class="container">
 
-      <div class="screen active" id="screen-loading">
-        <header>
-          <h1>Security Checking</h1>
-          <p class="desc">接続の安全性およびアカウントの連携ポリシー適合性を検査しています。</p>
-        </header>
-
-        <div class="scanner-container">
-          <div class="scanner-line-wrapper">
-            <div class="scanner-line"></div>
-          </div>
-
-          <div class="checks-list">
-            <div class="check-item" id="check-rate">
-              <span class="check-label">Rate limit & admission allowance</span>
-              <span class="check-status" id="status-rate">PENDING</span>
-            </div>
-            <div class="check-item" id="check-network">
-              <span class="check-label">Network integrity (Proxy/VPN scan)</span>
-              <span class="check-status" id="status-network">PENDING</span>
-            </div>
-            <div class="check-item" id="check-account">
-              <span class="check-label">Guild enrollment verification</span>
-              <span class="check-status" id="status-account">PENDING</span>
-            </div>
-          </div>
-        </div>
+    <!-- LOADING SCREEN -->
+    <div class="screen active" id="screen-loading">
+      <div class="spinner-wrapper">
+        <div class="spinner"></div>
+        <span class="loading-text" id="loading-state-text">checking...</span>
       </div>
-
-      <div class="screen" id="screen-success">
-        <div>
-          <div class="status-badge success">
-            <span class="status-dot"></span>
-            Verified
-          </div>
-        </div>
-
-        <header>
-          <h1>Verification Completed</h1>
-          <p class="desc">セキュリティ審査およびDiscordアカウントの連携が正常に終了しました。</p>
-        </header>
-
-        <div class="meta-box">
-          <img class="avatar" src="<%= avatarUrl %>" alt="" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
-          <div class="user-info">
-            <div class="user-name"><%= username %></div>
-            <div class="connection-status">ROLE <span>1439385926685167847</span> ASSIGNED</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="screen" id="screen-error">
-        <div>
-          <div class="status-badge error">
-            <span class="status-dot"></span>
-            Rejected
-          </div>
-        </div>
-
-        <header>
-          <h1>Verification Failed</h1>
-          <p class="desc">接続制限またはセキュリティ要件を満たしていないため、認証を拒否しました。</p>
-        </header>
-
-        <div class="error-box">
-          <div class="error-title">Security Violation Detail</div>
-          <div class="error-msg"><%= errorMessage %></div>
-        </div>
-
-        <div>
-          <a class="btn-retry" href="javascript:window.location.reload();">再試行</a>
-        </div>
-      </div>
-
-      <div class="sponsorship">
-        <div class="sponsor-title">Domain Sponsorship</div>
-        <p class="sponsor-desc">この認証システムは、<strong>よあ帝国</strong>のドメイン提供により成り立っています。</p>
-      </div>
-
+      <div class="loading-step-details" id="loading-details">authenticating</div>
     </div>
+
+    <!-- SUCCESS SCREEN -->
+    <div class="screen" id="screen-success">
+      <div class="status-lbl success">success</div>
+      <h1>連携が完了しました。</h1>
+      
+      <div class="log-box">
+        <div class="log-row">
+          <span class="log-key">IDENTITY</span>
+          <span class="log-val"><%= username %></span>
+        </div>
+        <div class="log-row">
+          <span class="log-key">ASSIGNED</span>
+          <span class="log-val success-highlight">1439385926685167847</span>
+        </div>
+        <div class="log-row">
+          <span class="log-key">GATEWAY</span>
+          <span class="log-val">PASSED</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ERROR SCREEN -->
+    <div class="screen" id="screen-error">
+      <div class="status-lbl error">failed</div>
+      <h1>連携できませんでした。</h1>
+      
+      <div class="error-detail-box">
+        <%= errorMessage %>
+      </div>
+
+      <a class="btn-retry" href="javascript:window.location.reload();">再試行</a>
+    </div>
+
+    <!-- COMMON SPONSORSHIP -->
+    <div class="sponsorship">
+      <div class="sponsor-title">infrastructure</div>
+      <p class="sponsor-desc">このシステムは <span>よあ帝国</span> のドメイン提供により運用されています。</p>
+    </div>
+
   </div>
 
   <script>
     const isSuccess = <%= isSuccess %>;
     const failStep = "<%= failStep %>";
 
-    const card = document.getElementById('main-card');
     const screenLoading = document.getElementById('screen-loading');
     const screenSuccess = document.getElementById('screen-success');
     const screenError = document.getElementById('screen-error');
+    const stateText = document.getElementById('loading-state-text');
+    const detailsText = document.getElementById('loading-details');
 
     async function runChecks() {
       const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
       await delay(600);
-      activateCheck('check-rate', 'status-rate');
+      stateText.textContent = "checking network...";
+      detailsText.textContent = "scanning proxy & vpn";
       await delay(800);
-      if (!isSuccess && failStep === 'rate') {
-        failCheck('check-rate', 'status-rate');
-        await delay(500);
-        showFinalScreen('error');
-        return;
-      }
-      passCheck('check-rate', 'status-rate');
-
-      await delay(600);
-      activateCheck('check-network', 'status-network');
-      await delay(1000);
       if (!isSuccess && failStep === 'network') {
-        failCheck('check-network', 'status-network');
-        await delay(500);
         showFinalScreen('error');
         return;
       }
-      passCheck('check-network', 'status-network');
 
       await delay(600);
-      activateCheck('check-account', 'status-account');
+      stateText.textContent = "resolving permissions...";
+      detailsText.textContent = "checking role assignment";
       await delay(800);
       if (!isSuccess && failStep === 'account') {
-        failCheck('check-account', 'status-account');
-        await delay(500);
         showFinalScreen('error');
         return;
       }
-      passCheck('check-account', 'status-account');
 
       await delay(600);
       showFinalScreen('success');
     }
 
-    function activateCheck(itemId, statusId) {
-      document.getElementById(itemId).classList.add('active');
-      const statusEl = document.getElementById(statusId);
-      statusEl.textContent = 'CHECKING';
-      statusEl.className = 'check-status status-checking';
-    }
-
-    function passCheck(itemId, statusId) {
-      document.getElementById(itemId).classList.add('active');
-      const statusEl = document.getElementById(statusId);
-      statusEl.textContent = 'PASS';
-      statusEl.className = 'check-status status-pass';
-    }
-
-    function failCheck(itemId, statusId) {
-      document.getElementById(itemId).classList.add('active');
-      const statusEl = document.getElementById(statusId);
-      statusEl.textContent = 'FAIL';
-      statusEl.className = 'check-status status-fail';
-    }
-
     function showFinalScreen(type) {
       screenLoading.classList.remove('active');
-      card.classList.remove('state-loading');
-
       if (type === 'success') {
-        card.classList.add('state-success');
         screenSuccess.classList.add('active');
       } else {
-        card.classList.add('state-error');
         screenError.classList.add('active');
       }
     }
