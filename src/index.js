@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { setupBot } = require('./bot');
 const { startWebServer } = require('./server');
+const { registerCommands } = require('../register');
 
 const requiredEnv = ['DISCORD_TOKEN', 'CLIENT_ID', 'CLIENT_SECRET', 'GUILD_ID', 'REDIRECT_URI'];
 const missingEnv = requiredEnv.filter(key => !process.env[key]);
@@ -17,7 +18,15 @@ const botClient = setupBot();
 
 startWebServer(botClient);
 
-botClient.login(process.env.DISCORD_TOKEN).catch(err => {
-  console.error('[Bot] Discordへのログインに失敗しました。DISCORD_TOKENが正しいか確認してください:', err.message);
-  process.exit(1);
-});
+botClient.login(process.env.DISCORD_TOKEN)
+  .then(async () => {
+    await registerCommands(
+      process.env.CLIENT_ID,
+      process.env.DISCORD_TOKEN,
+      process.env.GUILD_ID
+    );
+  })
+  .catch(err => {
+    console.error('[Bot] Discordへのログインに失敗しました。DISCORD_TOKENが正しいか確認してください:', err.message);
+    process.exit(1);
+  });

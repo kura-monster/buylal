@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, REST, Routes, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, ApplicationCommandOptionType, Events } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, Events } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -34,9 +34,8 @@ function setupBot() {
     ]
   });
 
-  client.once(Events.ClientReady, async () => {
+  client.once(Events.ClientReady, () => {
     console.log(`[Bot] Logged in as ${client.user.tag}`);
-    await registerCommands(client);
   });
 
   client.on('interactionCreate', async (interaction) => {
@@ -169,67 +168,6 @@ function setupBot() {
   return client;
 }
 
-async function registerCommands(client) {
-  const commands = [
-    {
-      name: 'auth',
-      description: 'Discordアカウント認証および接続チェックを行う埋め込みを設置します',
-      default_member_permissions: PermissionFlagsBits.Administrator.toString()
-    },
-    {
-      name: 'lol',
-      description: '特定のサーバーを拒否設定に追加/削除します (トグル)',
-      default_member_permissions: PermissionFlagsBits.Administrator.toString(),
-      options: [
-        {
-          name: 'id',
-          description: '拒否するサーバー (ギルド) のID',
-          type: ApplicationCommandOptionType.String,
-          required: true
-        }
-      ]
-    },
-    {
-      name: 'lollist',
-      description: '現在拒否設定中のサーバー一覧を表示します',
-      default_member_permissions: PermissionFlagsBits.Administrator.toString()
-    }
-  ];
 
-  const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-
-  try {
-    console.log('[Bot] Registering slash commands...');
-    const guildId = process.env.GUILD_ID;
-    
-    if (guildId) {
-      try {
-        await rest.put(
-          Routes.applicationGuildCommands(client.user.id, guildId),
-          { body: commands }
-        );
-        console.log(`[Bot] Guild application commands registered successfully for Guild: ${guildId}`);
-        return;
-      } catch (guildError) {
-        console.warn(`[Bot] Failed to register guild commands for ${guildId}: ${guildError.message}`);
-        console.warn('[Bot] Falling back to global command registration...');
-      }
-    }
-
-    await rest.put(
-      Routes.applicationCommands(client.user.id),
-      { body: commands }
-    );
-    console.log('[Bot] Global application commands registered successfully. (Note: Global commands can take up to 1 hour to appear across all servers)');
-
-  } catch (error) {
-    console.error('[Bot] Failed to register commands:', error);
-    if (error.code === 50001) {
-      console.error('[Bot] [ERROR: Missing Access] Botに "applications.commands" スコープが不足しているか、サーバーへの参加状況が正しくありません。');
-      console.log('[Bot] 以下のリンクを使用してBotをサーバーに招待し直してください:');
-      console.log(`[Bot] https://discord.com/oauth2/authorize?client_id=${client.user.id}&permissions=268520448&scope=bot%20applications.commands`);
-    }
-  }
-}
 
 module.exports = { setupBot };
