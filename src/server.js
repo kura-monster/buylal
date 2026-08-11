@@ -119,7 +119,7 @@ function generateMathQuestion() {
     const a = Math.floor(Math.random() * 28) + 3;
     const b = Math.floor(Math.random() * 28) + 3;
     return {
-      question: `${a} + ${b}`,
+      question: `${a} × ${b}`,
       answer: a + b
     };
   }
