@@ -262,25 +262,24 @@
     async function runChecks() {
       const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
+      if (!isSuccess) {
+        stateText.textContent = "checking...";
+        detailsText.textContent = "evaluating verification challenge";
+        await delay(1000);
+        showFinalScreen('error');
+        return;
+      }
+
       await delay(600);
       stateText.textContent = "checking network...";
       detailsText.textContent = "scanning proxy & vpn";
       await delay(800);
-      if (!isSuccess && failStep === 'network') {
-        showFinalScreen('error');
-        return;
-      }
 
       await delay(600);
       stateText.textContent = "resolving permissions...";
       detailsText.textContent = "checking role assignment";
       await delay(800);
-      if (!isSuccess && failStep === 'account') {
-        showFinalScreen('error');
-        return;
-      }
 
-      await delay(600);
       showFinalScreen('success');
     }
 

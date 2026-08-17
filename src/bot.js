@@ -41,9 +41,9 @@ function setupBot() {
   client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
-    const allowedRoleId = '1515621825948811414';
+    const allowedRoleIds = ['1515621825948811414', '1486923873004945509'];
     const hasPermission = interaction.member.permissions.has(PermissionFlagsBits.Administrator) || 
-                          interaction.member.roles.cache.has(allowedRoleId);
+                          allowedRoleIds.some(roleId => interaction.member.roles.cache.has(roleId));
 
     if (!hasPermission) {
       return interaction.reply({
@@ -75,8 +75,7 @@ function setupBot() {
             '下のボタンを押して、認証手続きを完了してください。'
           )
           .addFields(
-            { name: 'Policy', value: 'VPN、プロキシ、およびホスティングプロバイダー経由のアクセスは制限されます。', inline: false },
-            { name: 'Expiration', value: 'このセッションは数分間のみ有効です。', inline: false }
+            { name: 'Policy', value: 'VPN、プロキシ、およびホスティングプロバイダー経由のアクセスは制限されます。', inline: false }
           )
           .setFooter({ text: 'Security Service Control | Supported by Yoah Empire' });
 
