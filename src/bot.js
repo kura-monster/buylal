@@ -77,7 +77,7 @@ function setupBot() {
           .addFields(
             { name: 'Policy', value: 'VPN、プロキシ、およびホスティングプロバイダー経由のアクセスは制限されます。', inline: false }
           )
-          .setFooter({ text: 'Security Service Control | Supported by kura' });
+          .setFooter({ text: 'Security Service Control | Supported by Yoah Empire' });
 
         const row = new ActionRowBuilder().addComponents(
           new ButtonBuilder()

@@ -39,11 +39,17 @@ function checkGlobalAdmissionLimit() {
 }
 
 function getClientIp(req) {
+  const cfIp = req.headers['cf-connecting-ip'];
+  if (cfIp) return cfIp.trim();
+
+  const realIp = req.headers['x-real-ip'];
+  if (realIp) return realIp.trim();
+
   const forwarded = req.headers['x-forwarded-for'];
   if (forwarded) {
-    const ips = forwarded.split(',');
-    return ips[0].trim();
+    return forwarded.split(',')[0].trim();
   }
+
   return req.socket.remoteAddress;
 }
 
@@ -106,24 +112,6 @@ function getBannedGuilds() {
   }
 }
 
-function generateMathQuestion() {
-  const isMultiplication = Math.random() > 0.5;
-  if (isMultiplication) {
-    const a = Math.floor(Math.random() * 8) + 2;
-    const b = Math.floor(Math.random() * 8) + 2;
-    return {
-      question: `${a} * ${b}`,
-      answer: a * b
-    };
-  } else {
-    const a = Math.floor(Math.random() * 28) + 3;
-    const b = Math.floor(Math.random() * 28) + 3;
-    return {
-      question: `${a} + ${b}`,
-      answer: a + b
-    };
-  }
-}
 
 function renderTemplate(filePath, replacements) {
   let content = fs.readFileSync(filePath, 'utf8');
@@ -137,6 +125,7 @@ function startWebServer(botClient) {
   const app = express();
   const PORT = process.env.PORT || 3000;
 
+  app.set('trust proxy', true);
   app.use(express.urlencoded({ extended: true }));
 
   const apiLimiter = rateLimit({
@@ -181,7 +170,7 @@ function startWebServer(botClient) {
     }
 
     const clientIp = getClientIp(req);
-    console.log(`[Auth attempt] IP: ${clientIp}`);
+    console.log(`[Auth attempt] IP: ${clientIp} | cf: ${req.headers['cf-connecting-ip'] || '-'} | x-real-ip: ${req.headers['x-real-ip'] || '-'} | x-forwarded-for: ${req.headers['x-forwarded-for'] || '-'}`);
 
     const admissionCheck = checkGlobalAdmissionLimit();
     if (!admissionCheck.allowed) {
@@ -241,7 +230,6 @@ function startWebServer(botClient) {
         ? `https://cdn.discordapp.com/avatars/${userId}/${discordUser.avatar}.png`
         : `https://cdn.discordapp.com/embed/avatars/${parseInt(userId) % 5}.png`;
 
-      const math = generateMathQuestion();
       const verificationToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
       pendingVerifications.set(verificationToken, {
@@ -250,12 +238,10 @@ function startWebServer(botClient) {
         username: username,
         avatarUrl: avatarUrl,
         accessToken: accessToken,
-        correctAnswer: math.answer,
         createdAt: Date.now()
       });
 
       const html = renderTemplate(captchaHtmlPath, {
-        mathQuestion: math.question,
         token: verificationToken
       });
       res.send(html);
@@ -274,7 +260,7 @@ function startWebServer(botClient) {
   });
 
   app.post('/api/auth/verify-captcha', async (req, res) => {
-    const { token, answer } = req.body;
+    const { token } = req.body;
     const verifyHtmlPath = path.join(__dirname, 'views', 'verify.html');
     const clientIp = getClientIp(req);
 
@@ -306,13 +292,6 @@ function startWebServer(botClient) {
 
     renderData.username = session.username;
     renderData.avatarUrl = session.avatarUrl;
-
-    if (parseInt(answer, 10) !== session.correctAnswer) {
-      renderData.failStep = 'rate';
-      renderData.errorMessage = 'アクセス制限: 計算の答えが一致しません。自動化ロボットとみなされました。認証をやり直してください。';
-      const html = renderTemplate(verifyHtmlPath, renderData);
-      return res.status(400).send(html);
-    }
 
     try {
       let guildsResponse;

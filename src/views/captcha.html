@@ -11,16 +11,11 @@
       --bg: #030303;
       --text: #e4e4e7;
       --text-muted: #52525b;
-      --accent: #ffffff;
       --font-sans: 'Geist', sans-serif;
       --font-mono: 'Geist Mono', monospace;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background-color: var(--bg);
@@ -42,91 +37,141 @@
       gap: 40px;
     }
 
-    header {
-      display: flex;
+    .screen {
+      display: none;
       flex-direction: column;
-      gap: 8px;
+      gap: 24px;
+      animation: fadeIn 0.3s ease forwards;
     }
 
-    .system-title {
+    .screen.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .label {
       font-family: var(--font-mono);
       font-size: 10px;
       letter-spacing: 0.15em;
-      color: var(--text-muted);
       text-transform: uppercase;
+      color: var(--text-muted);
     }
 
     h1 {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 400;
-      color: var(--text-muted);
+      color: #ffffff;
       line-height: 1.5;
     }
 
-    .challenge-area {
+    p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .hold-wrapper {
       display: flex;
       flex-direction: column;
-      gap: 24px;
-    }
-
-    .equation {
-      font-family: var(--font-mono);
-      font-size: 32px;
-      font-weight: 200;
-      color: #ffffff;
-      letter-spacing: -0.02em;
-    }
-
-    .form-row {
-      position: relative;
-      display: flex;
       align-items: center;
+      gap: 20px;
+      padding: 12px 0;
     }
 
-    input[type="number"] {
-      width: 100%;
+    .hold-btn {
+      position: relative;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      border: 1px solid #27272a;
       background: transparent;
-      border: none;
-      border-bottom: 1px solid #27272a;
-      color: #ffffff;
-      padding: 12px 40px 12px 0;
-      font-size: 18px;
-      font-family: var(--font-mono);
-      outline: none;
-      transition: border-color 0.3s ease;
-    }
-
-    input[type="number"]:focus {
-      border-color: var(--accent);
-    }
-
-    input::-webkit-outer-spin-button,
-    input::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-
-    .submit-arrow {
-      position: absolute;
-      right: 0;
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
       cursor: pointer;
-      padding: 8px;
+      user-select: none;
+      -webkit-user-select: none;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: color 0.2s ease;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: border-color 0.15s;
     }
 
-    input[type="number"]:focus + .submit-arrow,
-    .submit-arrow:hover {
-      color: #ffffff;
+    .hold-btn.holding { border-color: #3f3f46; }
+
+    .progress-ring {
+      position: absolute;
+      top: -3px;
+      left: -3px;
+      width: 94px;
+      height: 94px;
+      transform: rotate(-90deg);
+      pointer-events: none;
     }
+
+    .progress-ring circle {
+      fill: none;
+      stroke: #ffffff;
+      stroke-width: 1;
+      stroke-linecap: round;
+    }
+
+    .hold-inner {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .hold-inner svg {
+      width: 20px;
+      height: 20px;
+      color: #3f3f46;
+      transition: color 0.2s;
+    }
+
+    .hold-btn.holding .hold-inner svg { color: #a1a1aa; }
+    .hold-btn.done .hold-inner svg    { color: #ffffff; }
+
+    .hold-hint {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      transition: opacity 0.2s;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      flex: 1;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #27272a;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .btn:hover { border-color: #52525b; }
+
+    .btn.primary {
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+    }
+
+    .btn.primary:hover { background: #e4e4e7; }
 
     .sponsorship {
-      margin-top: 40px;
       border-top: 1px solid #18181b;
       padding-top: 24px;
       display: flex;
@@ -148,41 +193,131 @@
       line-height: 1.5;
     }
 
-    .sponsor-desc span {
-      color: var(--text);
-    }
+    .sponsor-desc span { color: var(--text); }
   </style>
 </head>
 <body>
   <div class="container">
-    <header>
-      <div class="system-title">verification</div>
-      <h1>計算結果を入力してください。</h1>
-    </header>
 
-    <div class="challenge-area">
-      <div class="equation">
-        <%= mathQuestion %>
-      </div>
+    <!-- 長押し画面 -->
+    <div class="screen active" id="screen-hold">
+      <div class="label">verification</div>
+      <h1>長押しして続行してください。</h1>
+      <p>ボタンを長押しして、ロボットでないことを確認します。</p>
 
-      <form action="/api/auth/verify-captcha" method="POST">
-        <input type="hidden" name="token" value="<%= token %>">
-        <div class="form-row">
-          <input type="number" name="answer" required autofocus placeholder="?" autocomplete="off">
-          <button type="submit" class="submit-arrow" aria-label="Submit">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-              <polyline points="12 5 19 12 12 19"></polyline>
+      <div class="hold-wrapper">
+        <button class="hold-btn" id="holdBtn" type="button" aria-label="長押しして認証">
+          <svg class="progress-ring" viewBox="0 0 94 94">
+            <circle id="progressCircle" cx="47" cy="47" r="44"/>
+          </svg>
+          <div class="hold-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 11V6.5a2.5 2.5 0 0 0-5 0V12m0 0V6.5a2.5 2.5 0 0 0-5 0V12m0 0V8.5a2.5 2.5 0 0 0-5 0V16a6 6 0 0 0 6 6h2a6 6 0 0 0 6-6v-1.5a2.5 2.5 0 0 0-5 0"/>
             </svg>
-          </button>
+          </div>
+        </button>
+        <span class="hold-hint" id="holdHint">press and hold</span>
+      </div>
+    </div>
+
+    <!-- 確認画面 -->
+    <div class="screen" id="screen-confirm">
+      <div class="label">confirmation</div>
+      <h1>認証しますか？</h1>
+      <p>Discordアカウントとの連携を続行します。</p>
+
+      <form method="POST" action="/api/auth/verify-captcha" id="confirmForm">
+        <input type="hidden" name="token" value="<%= token %>">
+        <div class="btn-row">
+          <button type="button" class="btn" id="cancelBtn">いいえ</button>
+          <button type="submit" class="btn primary">はい</button>
         </div>
       </form>
     </div>
 
     <div class="sponsorship">
       <div class="sponsor-title">infrastructure</div>
-      <p class="sponsor-desc">このシステムは <span>Kura</span> のドメイン提供により運用されています。</p>
+      <p class="sponsor-desc">このシステムは <span>よあ帝国</span> のドメイン提供により運用されています。</p>
     </div>
+
   </div>
+
+  <script>
+    const holdBtn       = document.getElementById('holdBtn');
+    const progressCircle = document.getElementById('progressCircle');
+    const holdHint      = document.getElementById('holdHint');
+    const screenHold    = document.getElementById('screen-hold');
+    const screenConfirm = document.getElementById('screen-confirm');
+    const cancelBtn     = document.getElementById('cancelBtn');
+
+    const HOLD_MS    = 2400;
+    const R          = 44;
+    const CIRCUMFERENCE = 2 * Math.PI * R;
+
+    progressCircle.style.strokeDasharray  = CIRCUMFERENCE;
+    progressCircle.style.strokeDashoffset = CIRCUMFERENCE;
+
+    let holdStart = null;
+    let rafId     = null;
+
+    function setProgress(ratio) {
+      progressCircle.style.strokeDashoffset = CIRCUMFERENCE * (1 - ratio);
+    }
+
+    function startHold() {
+      if (holdStart !== null) return;
+      holdStart = performance.now();
+      holdBtn.classList.add('holding');
+      holdHint.textContent = 'holding...';
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function tick(now) {
+      if (holdStart === null) return;
+      const ratio = Math.min((now - holdStart) / HOLD_MS, 1);
+      setProgress(ratio);
+      if (ratio >= 1) {
+        completeHold();
+      } else {
+        rafId = requestAnimationFrame(tick);
+      }
+    }
+
+    function releaseHold() {
+      if (holdStart === null) return;
+      holdStart = null;
+      cancelAnimationFrame(rafId);
+      holdBtn.classList.remove('holding');
+      holdHint.textContent = 'press and hold';
+      setProgress(0);
+    }
+
+    function completeHold() {
+      holdStart = null;
+      cancelAnimationFrame(rafId);
+      holdBtn.classList.remove('holding');
+      holdBtn.classList.add('done');
+      setProgress(1);
+      setTimeout(() => {
+        screenHold.classList.remove('active');
+        screenConfirm.classList.add('active');
+      }, 200);
+    }
+
+    holdBtn.addEventListener('mousedown',  (e) => { e.preventDefault(); startHold(); });
+    document.addEventListener('mouseup',   ()  => releaseHold());
+
+    holdBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startHold(); }, { passive: false });
+    document.addEventListener('touchend',  ()  => releaseHold());
+    document.addEventListener('touchcancel', () => releaseHold());
+
+    cancelBtn.addEventListener('click', () => {
+      screenConfirm.classList.remove('active');
+      holdBtn.classList.remove('done');
+      setProgress(0);
+      holdHint.textContent = 'press and hold';
+      screenHold.classList.add('active');
+    });
+  </script>
 </body>
 </html>
